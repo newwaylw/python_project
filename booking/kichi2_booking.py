@@ -3,6 +3,7 @@ import time
 import os.path
 import datetime
 import logging
+import random
 
 prefer_times = list()
 
@@ -22,13 +23,21 @@ LOCK_FILE = '.booking_success'
 error_types = ['Success', 'Reservation ended','Reservation not accepted',
                'Outside reservation period', 'We do not accept reservations now', 'capacity over', 'unknown']
 
-logging.basicConfig(filename='booking.log', level=logging.INFO)
+user_agents = ['Mozilla/5.0 (compatible; MSIE 10.0; Windows NT 6.1; Trident/6.0)',
+               'Mozilla/5.0 (Windows NT 6.1; WOW64; Trident/7.0; AS; rv:11.0) like Gecko',
+               'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_6_8) AppleWebKit/537.13+ (KHTML, like Gecko) Version/5.1.7 Safari/534.57.2',
+               'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_3) AppleWebKit/537.75.14 (KHTML, like Gecko) Version/7.0.3 Safari/7046A194A',
+               'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2227.0 Safari/537.36',
+               'Mozilla/5.0 (Linux; U; Android 2.3; en-us) AppleWebKit/999+ (KHTML, like Gecko) Safari/999.9']
 
+script_dir = os.path.dirname(os.path.realpath(__file__))
+log_file = os.path.join(script_dir, 'kichi2_booking.log')
+logging.basicConfig(filename=log_file, level=logging.INFO)
 
 def make_booking(url, num_people, lead_name, hotel_name, email, country, tel):
 
     logging.info('[%s] requesting %s' % (datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'), url))
-    browser = RoboBrowser(history=False, user_agent='Mozilla/5.0 (X11; Linux x86_64)')
+    browser = RoboBrowser(history=False, user_agent=random.choice(user_agents))
     browser.open(url)
 
     # some error handling
@@ -72,7 +81,7 @@ def make_booking(url, num_people, lead_name, hotel_name, email, country, tel):
 def main():
     success = False
     inc = 2
-    delay = 5
+    delay = 1
 
     if os.path.isfile(LOCK_FILE):
         logging.info('[%s] already succeed, program stopped. to run, please delete file: %s' %
