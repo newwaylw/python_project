@@ -7,7 +7,7 @@ import random
 
 prefer_times = list()
 
-prefer_times.append(1541246400) # 11/03/2018 @ 12:00pm (UTC)
+prefer_times.append(1541246400)  # 11/03/2018 @ 12:00pm (UTC)
 prefer_times.append(1541250000)   # 11/03/2018 @ 1:00pm (UTC)
 prefer_times.append(1541332800)   # 11/04/2018 @ 12:00pm (UTC)
 prefer_times.append(1541336400)  # 11/04/2018 @ 1:00pm (UTC)
@@ -16,7 +16,7 @@ prefer_times.append(1541268000)  # 11/03/2018 @ 6:00pm (UTC)
 prefer_times.append(1541350800)
 prefer_times.append(1541354400)
 
-BOOKING_URL = 'http://dongree.xsrv.jp/kichikichi/reserve/booking-form/?aid=6&utm='
+BOOKING_URL = 'http://dongree.xsrv.jp/kichikichi/reserve/booking-form/?aid={}&utm={}'
 EMAIL = 'mrs_b.hu@outlook.com'
 LOCK_FILE = '.booking_success'
 
@@ -34,6 +34,7 @@ script_dir = os.path.dirname(os.path.realpath(__file__))
 log_file = os.path.join(script_dir, 'kichi2_booking.log')
 logging.basicConfig(filename=log_file, level=logging.INFO)
 
+
 def make_booking(url, num_people, lead_name, hotel_name, email, country, tel):
 
     logging.info('[%s] requesting %s' % (datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'), url))
@@ -41,17 +42,18 @@ def make_booking(url, num_people, lead_name, hotel_name, email, country, tel):
     browser.open(url)
 
     # some error handling
-    err = browser.select('div.entry-content')
-    if len(err) > 0 and '指定日時の予約受け付けは終了しました。' in str(err[0]):
-        return 1  # 'Reservation ended'
-    elif '指定時間は予約を受け付けておりません' in str(err[0]):
-        return 2  # Reservation not accepted
-    elif '予約受付期間外です' in str(err[0]):
-        return 3  # Outside reservation period
-    elif 'ただ今予約は受け付けておりません' in str(err[0]):
-        return 4  # We do not accept reservations now.
-    else:
-        return 6  # unknown error
+    err = browser.select('div.error-message')
+    if len(err) > 0:
+        if '指定日時の予約受け付けは終了しました。' in str(err[0]):
+            return 1  # 'Reservation ended'
+        elif '指定時間は予約を受け付けておりません' in str(err[0]):
+            return 2  # Reservation not accepted
+        elif '予約受付期間外です' in str(err[0]):
+            return 3  # Outside reservation period
+        elif 'ただ今予約は受け付けておりません' in str(err[0]):
+            return 4  # We do not accept reservations now.
+        else:
+            return 6  # unknown error
 
     form = browser.get_form()
 
@@ -80,7 +82,6 @@ def make_booking(url, num_people, lead_name, hotel_name, email, country, tel):
 
 def main():
     success = False
-    inc = 2
     delay = 1
 
     if os.path.isfile(LOCK_FILE):
@@ -89,7 +90,15 @@ def main():
         exit(0)
 
     for t in prefer_times:
-        url = BOOKING_URL + str(t)
+        dt = datetime.datetime.utcfromtimestamp(t)
+        hour = dt.hour
+
+        if hour in [12, 13]:  # Lunch
+            aid = 17
+        else:
+            aid = 6
+
+        url = BOOKING_URL.format(aid, t)
         ret = make_booking(url, '4', 'Baoqing Hu', 'N/A', EMAIL, 'UK', '00447875643636')
         if ret == 0:
             success = True
